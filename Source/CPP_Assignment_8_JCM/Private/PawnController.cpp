@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "PawnController.h"
@@ -42,13 +42,17 @@ void APawnController::BeginPlay()
 		}
 	}
 
-	if (ULocalPlayer* LocalPlayer = GetLocalPlayer()) {
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()) {
-			if (GlobalInputMappingContext) {
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+	{		
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			if (GlobalInputMappingContext)
+			{
 				Subsystem->AddMappingContext(GlobalInputMappingContext, 0);
 			}
 
-			if (PawnInputMappingContext) {
+			if (PawnInputMappingContext)
+			{
 				Subsystem->AddMappingContext(PawnInputMappingContext, 1);
 			}
 		}
@@ -59,8 +63,10 @@ void APawnController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent)) {
-		if (SwitchToPawnAction) {
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		if (SwitchToPawnAction)
+		{
 			EnhancedInput->BindAction(
 				SwitchToPawnAction,
 				ETriggerEvent::Triggered,
@@ -68,7 +74,8 @@ void APawnController::SetupInputComponent()
 				&APawnController::SwitchToPawn
 			);
 		}
-		if (SwitchToDroneAction) {
+		if (SwitchToDroneAction)
+		{
 			EnhancedInput->BindAction(
 				SwitchToDroneAction,
 				ETriggerEvent::Triggered,
@@ -85,17 +92,24 @@ void APawnController::SwitchToPawn(const FInputActionValue& Value)
 	UnPossess();
 	Possess(CharacterPawn);
 
-	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent)) {
-		if (DroneInputMappingContext) {
-			if (ULocalPlayer* LocalPlayer = GetLocalPlayer()) {
-				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()) {
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		if (DroneInputMappingContext)
+		{
+			if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+			{
+				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+				{
 					Subsystem->RemoveMappingContext(DroneInputMappingContext);
 				}
 			}
 		}
-		if (PawnInputMappingContext) {
-			if (ULocalPlayer* LocalPlayer = GetLocalPlayer()) {
-				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()) {
+		if (PawnInputMappingContext)
+		{
+			if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+			{
+				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+				{
 					Subsystem->AddMappingContext(PawnInputMappingContext, 1);
 				}
 			}
@@ -109,17 +123,24 @@ void APawnController::SwitchToDrone(const FInputActionValue& Value)
 	UnPossess();
 	Possess(DronePawn);
 
-	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent)) {
-		if (PawnInputMappingContext) {
-			if (ULocalPlayer* LocalPlayer = GetLocalPlayer()) {
-				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()) {
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		if (PawnInputMappingContext)
+		{
+			if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+			{
+				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+				{
 					Subsystem->RemoveMappingContext(PawnInputMappingContext);
 				}
 			}
 		}
-		if (DroneInputMappingContext) {
-			if (ULocalPlayer* LocalPlayer = GetLocalPlayer()) {
-				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()) {
+		if (DroneInputMappingContext)
+		{
+			if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+			{
+				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+				{
 					Subsystem->AddMappingContext(DroneInputMappingContext, 1);
 				}
 			}

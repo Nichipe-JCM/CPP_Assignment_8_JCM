@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Drone.h"
@@ -43,11 +43,13 @@ ADrone::ADrone()
 	Camera->bUsePawnControlRotation = false;
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> DroneMeshAsset(TEXT("/Game/Fab/Free_Sci-Fi_Drone___Full_Pack_In_Description/SM_Drone.SM_Drone"));
-	if (DroneMeshAsset.Succeeded()) {
+	if (DroneMeshAsset.Succeeded())
+	{
 		DroneMesh->SetSkeletalMesh(DroneMeshAsset.Object);
 	}
 	static ConstructorHelpers::FObjectFinder<UAnimationAsset> LoopAnimationAsset(TEXT("/Game/Fab/Free_Sci-Fi_Drone___Full_Pack_In_Description/AS_Drone_Loop.AS_Drone_Loop"));
-	if (LoopAnimationAsset.Succeeded()) {
+	if (LoopAnimationAsset.Succeeded())
+	{
 		LoopAnimation = LoopAnimationAsset.Object;
 	}
 }
@@ -75,9 +77,12 @@ void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		if (APawnController* PawnController = Cast<APawnController>(GetController())) {
-			if (PawnController->DroneMoveAction) {
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		if (APawnController* PawnController = Cast<APawnController>(GetController()))
+		{
+			if (PawnController->DroneMoveAction)
+			{
 				EnhancedInput->BindAction(
 					PawnController->DroneMoveAction,
 					ETriggerEvent::Triggered,
@@ -85,7 +90,8 @@ void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 					&ADrone::Move
 				);
 			}
-			if (PawnController->DroneLookAction) {
+			if (PawnController->DroneLookAction)
+			{
 				EnhancedInput->BindAction(
 					PawnController->DroneLookAction,
 					ETriggerEvent::Triggered,
@@ -93,7 +99,8 @@ void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 					&ADrone::Look
 				);
 			}
-			if (PawnController->DroneAscendAction) {
+			if (PawnController->DroneAscendAction)
+			{
 				EnhancedInput->BindAction(
 					PawnController->DroneAscendAction,
 					ETriggerEvent::Triggered,
@@ -101,7 +108,8 @@ void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 					&ADrone::Ascend
 				);
 			}
-			if (PawnController->DroneRollAction) {
+			if (PawnController->DroneRollAction)
+			{
 				EnhancedInput->BindAction(
 					PawnController->DroneRollAction,
 					ETriggerEvent::Triggered,
@@ -109,7 +117,8 @@ void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 					&ADrone::Roll
 				);
 			}
-			if (PawnController->DroneStableAction) {
+			if (PawnController->DroneStableAction)
+			{
 				EnhancedInput->BindAction(
 					PawnController->DroneStableAction,
 					ETriggerEvent::Triggered,

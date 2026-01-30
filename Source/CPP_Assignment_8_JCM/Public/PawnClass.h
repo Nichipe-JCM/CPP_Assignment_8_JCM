@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -20,6 +20,11 @@ class CPP_ASSIGNMENT_8_JCM_API APawnClass : public APawn
 public:
 	// Sets default values for this pawn's properties
 	APawnClass();
+
+	UFUNCTION(BlueprintPure, Category = "PawnClass|Health")
+	int32 GetHealth() const;
+	UFUNCTION(BlueprintCallable, Category = "PawnClass|Health")
+	void AddHealth(float Amount);
 
 protected:
 	// Called when the game starts or when spawned
@@ -57,6 +62,20 @@ protected:
 	void Look(const FInputActionValue& Value);
 	UFUNCTION()
 	void StartJump(const FInputActionValue& Value);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PawnClass|Health")
+	float MaxHealth;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PawnClass|Health")
+	float Health;
+	UFUNCTION(BlueprintCallable, Category = "PawnClass|Health")
+	virtual void OnDeath();
+
+	virtual float TakeDamage(
+		float DamageAmount,
+		struct FDamageEvent
+		const& DamageEvent,
+		AController* EventInstigator,
+		AActor* DamageCauser) override;
 
 public:	
 	// Called every frame
