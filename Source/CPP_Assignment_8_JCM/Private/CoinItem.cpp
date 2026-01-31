@@ -3,7 +3,7 @@
 
 #include "CoinItem.h"
 #include "Engine/World.h"
-#include "SpartaGameStateBase.h"
+#include "SpartaGameState.h"
 
 ACoinItem::ACoinItem()
 {
@@ -24,9 +24,10 @@ void ACoinItem::ActivateItem(AActor* Activator)
 			);
 		if(UWorld* World = GetWorld()) 
 		{
-			if(ASpartaGameStateBase* GameState = World->GetGameState<ASpartaGameStateBase>())
+			if(ASpartaGameState* GameState = World->GetGameState<ASpartaGameState>())
 			{
 				GameState->AddScore(PointValue);
+				GameState->OnCoinCollected();
 			}
 		}
 		DestroyItem();
