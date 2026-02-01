@@ -10,6 +10,7 @@ class UCapsuleComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
+class UWidgetComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -26,10 +27,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PawnClass|Health")
 	void AddHealth(float Amount);
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PawnClass|Components")
 	UCapsuleComponent* CapsuleComponent;
 
@@ -41,6 +38,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PawnClass|Components")
 	UCameraComponent* Camera;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PawnClass|UI")
+	UWidgetComponent* OverHeadWidget;
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PawnClass|Movement")
 	float MoveSpeed = 600.0f;
@@ -65,10 +69,11 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PawnClass|Health")
 	float MaxHealth;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PawnClass|Health")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PawnClass|Health")
 	float Health;
 	UFUNCTION(BlueprintCallable, Category = "PawnClass|Health")
 	virtual void OnDeath();
+	void UpdateOverHeadHP();
 
 	virtual float TakeDamage(
 		float DamageAmount,

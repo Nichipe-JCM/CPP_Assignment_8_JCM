@@ -11,6 +11,9 @@
 #include "PawnController.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Actor.h"
+#include "Components/WidgetComponent.h"
+#include "Components/TextBlock.h"
+#include "SpartaGameState.h"
 
 // Sets default values
 APawnClass::APawnClass()
@@ -35,6 +38,10 @@ APawnClass::APawnClass()
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
+	OverHeadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverHeadWidget"));
+	OverHeadWidget->SetupAttachment(PawnMesh);
+	OverHeadWidget->SetWidgetSpace(EWidgetSpace::Screen);
+
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> PawnMeshAsset(TEXT("/Game/Resources/Characters/Meshes/SKM_Manny.SKM_Manny"));
 	if (PawnMeshAsset.Succeeded())
 	{
@@ -50,7 +57,7 @@ APawnClass::APawnClass()
 void APawnClass::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	UpdateOverHeadHP();
 }
 
 // Called every frame
@@ -211,16 +218,34 @@ float APawnClass::TakeDamage(
 	{
 		OnDeath();
 	}
+	UpdateOverHeadHP();
 
 	return ActualDamage;
 }
 
 void APawnClass::OnDeath()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Pawn is dead!"));
+	ASpartaGameState* SpartaGameState = GetWorld() ? GetWorld()->GetGameState<ASpartaGameState>() : nullptr;
+	if (SpartaGameState)
+	{
+		SpartaGameState->OnGameOver();
+	}
 }
 
 int32 APawnClass::GetHealth() const
 {
 	return Health;
+}
+
+void APawnClass::UpdateOverHeadHP()
+{
+	if (!OverHeadWidget) return;	
+
+	UUserWidget* OverHeadWidgetInstance = OverHeadWidget->GetUserWidgetObject();
+	if (!OverHeadWidgetInstance) return;
+
+	if (UTextBlock* HPText = Cast<UTextBlock>(OverHeadWidgetInstance->GetWidgetFromName(TEXT("OverHeadHP"))))
+	{
+		HPText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Health, MaxHealth)));
+	}
 }

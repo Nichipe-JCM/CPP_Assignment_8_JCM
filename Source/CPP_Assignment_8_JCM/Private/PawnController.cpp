@@ -112,6 +112,24 @@ void APawnController::ShowMainMenu(bool bIsRestart)
 				ButtonText->SetText(FText::FromString(TEXT("Start")));	
 			}
 		}
+
+		if (bIsRestart)
+		{
+			UFunction* PlayAnimFunc = MainMenuWidgetInstance->FindFunction(TEXT("PlayGameOverAnim"));
+			if (PlayAnimFunc)
+			{
+				MainMenuWidgetInstance->ProcessEvent(PlayAnimFunc, nullptr);
+			}
+
+			if (UTextBlock* TotalScoreText = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName(TEXT("TotalScoreText"))))
+			{
+				if (USpartaGameInstance* SpartaGameInstance = Cast<USpartaGameInstance>(UGameplayStatics::GetGameInstance(this)))
+				{
+					TotalScoreText->SetText(FText::FromString(
+					FString::Printf(TEXT("Total Score: %d"), SpartaGameInstance->TotalScore)));
+				}
+			}
+		}
 	}
 }
 
@@ -157,6 +175,7 @@ void APawnController::StartGame()
 		GetWorld(),
 		FName("BasicLevel")
 	);
+	SetPause(false);
 }
 
 

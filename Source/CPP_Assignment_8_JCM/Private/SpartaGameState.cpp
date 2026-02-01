@@ -174,6 +174,7 @@ void ASpartaGameState::OnGameOver()
 	{
 		if (APawnController* PawnController = Cast<APawnController>(PlayerController))
 		{
+			PawnController->SetPause(true);
 			PawnController->ShowMainMenu(true);
 		}
 	}
