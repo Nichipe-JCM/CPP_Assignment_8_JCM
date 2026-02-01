@@ -15,13 +15,6 @@ void ACoinItem::ActivateItem(AActor* Activator)
 {
 	if (Activator && Activator->ActorHasTag("Player"))
 	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				2.f,
-				FColor::Green,
-				FString::Printf(TEXT("Collected %d points!"), PointValue)
-			);
 		if(UWorld* World = GetWorld()) 
 		{
 			if(ASpartaGameState* GameState = World->GetGameState<ASpartaGameState>())

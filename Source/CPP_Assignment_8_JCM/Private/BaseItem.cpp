@@ -38,13 +38,6 @@ void ABaseItem::OnItemOverlap(
 {
 	if (OtherActor && OtherActor->ActorHasTag("Player"))
 	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				2.f,
-				FColor::Green,
-				FString::Printf(TEXT("Overlapped"))
-			);
 		ActivateItem(OtherActor);
 	}
 }
@@ -59,13 +52,7 @@ void ABaseItem::OnItemEndOverlap(
 
 void ABaseItem::ActivateItem(AActor* Activator)
 {
-	if (GEngine)
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			2.f,
-			FColor::Green,
-			FString::Printf(TEXT("Overlapped"))
-		);
+	
 }
 
 FName ABaseItem::GetItemType() const

@@ -5,6 +5,10 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/UserWidget.h"
+#include "SpartaGameState.h"
+#include "Components/TextBlock.h"
+#include "SpartaGameInstance.h"
 
 APawnController::APawnController() :
 	PawnInputMappingContext(nullptr),
@@ -21,7 +25,11 @@ APawnController::APawnController() :
 	SwitchToPawnAction(nullptr),
 	SwitchToDroneAction(nullptr),
 	CharacterPawn(nullptr),
-	DronePawn(nullptr)
+	DronePawn(nullptr),
+	HUDWidgetClass(nullptr),
+	HUDWidgetInstance(nullptr),
+	MainMenuWidgetClass(nullptr),	
+	MainMenuWidgetInstance(nullptr)
 {
 }
 
@@ -57,7 +65,100 @@ void APawnController::BeginPlay()
 			}
 		}
 	}
+
+	FString CurrentMapName = GetWorld()->GetMapName();
+	if (CurrentMapName.Contains("MenuLevel"))
+	{
+		ShowMainMenu(false);
+	}
 }
+
+UUserWidget* APawnController::GetHUDWidget() const
+{
+	return HUDWidgetInstance;
+}
+
+void APawnController::ShowMainMenu(bool bIsRestart)
+{
+	if (HUDWidgetInstance)
+	{
+		HUDWidgetInstance->RemoveFromParent();
+		HUDWidgetInstance = nullptr;
+	}
+	if (MainMenuWidgetInstance)
+	{
+		MainMenuWidgetInstance->RemoveFromParent();
+		MainMenuWidgetInstance = nullptr;
+	}
+	if (MainMenuWidgetClass)
+	{
+		MainMenuWidgetInstance = CreateWidget<UUserWidget>(this, MainMenuWidgetClass);
+		if (MainMenuWidgetInstance)
+		{
+			MainMenuWidgetInstance->AddToViewport();
+
+			bShowMouseCursor = true;
+			SetInputMode(FInputModeUIOnly());
+		}
+
+		if (UTextBlock* ButtonText = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName(TEXT("StartButtonText"))))
+		{
+			if (bIsRestart)
+			{
+				ButtonText->SetText(FText::FromString(TEXT("Restart")));
+			}
+			else
+			{
+				ButtonText->SetText(FText::FromString(TEXT("Start")));	
+			}
+		}
+	}
+}
+
+void APawnController::ShowGameHUD()
+{
+	if (HUDWidgetInstance)
+	{
+		HUDWidgetInstance->RemoveFromParent();
+		HUDWidgetInstance = nullptr;
+	}
+	if (MainMenuWidgetInstance)
+	{
+		MainMenuWidgetInstance->RemoveFromParent();
+		MainMenuWidgetInstance = nullptr;
+	}
+	if (HUDWidgetClass)
+	{
+		HUDWidgetInstance = CreateWidget<UUserWidget>(this, HUDWidgetClass);
+		if (HUDWidgetInstance)
+		{
+			HUDWidgetInstance->AddToViewport();
+
+			bShowMouseCursor = false;
+			SetInputMode(FInputModeGameOnly());
+		}
+		
+		ASpartaGameState* SpartaGameState = GetWorld() ? GetWorld()->GetGameState<ASpartaGameState>() : nullptr;
+		if (SpartaGameState)
+		{
+			SpartaGameState->UpdateHUD();
+		}
+	}
+}
+
+void APawnController::StartGame()
+{
+	if (USpartaGameInstance* SpartaGameInstance = Cast<USpartaGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		SpartaGameInstance->CurrentLevelIndex = 0;
+		SpartaGameInstance->TotalScore = 0;
+	}
+	UGameplayStatics::OpenLevel(
+		GetWorld(),
+		FName("BasicLevel")
+	);
+}
+
 
 void APawnController::SetupInputComponent()
 {

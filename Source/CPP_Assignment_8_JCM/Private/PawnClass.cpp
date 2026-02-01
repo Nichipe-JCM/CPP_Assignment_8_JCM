@@ -154,7 +154,7 @@ void APawnClass::Move(const FInputActionValue& Value)
 	}
 	else
 	{
-		ScaledMoveSpeed = MoveSpeed * 0.5f * DeltaTime;
+		ScaledMoveSpeed = MoveSpeed * 1.2f * DeltaTime;
 	}
 
 	FVector DeltaLocation(InputVector.X * ScaledMoveSpeed, InputVector.Y * ScaledMoveSpeed, 0.0f);

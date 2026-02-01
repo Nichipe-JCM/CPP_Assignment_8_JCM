@@ -59,6 +59,28 @@ public:
 
 	void SwitchToDrone(const FInputActionValue& Value);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PawnController|HUD")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PawnController|HUD")
+	UUserWidget* HUDWidgetInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PawnController|Menu")
+	TSubclassOf<UUserWidget> MainMenuWidgetClass;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PawnController|Menu")
+	UUserWidget* MainMenuWidgetInstance;
+
+	UFUNCTION(BlueprintPure, Category = "PawnController|HUD")
+	UUserWidget* GetHUDWidget() const;
+
+	UFUNCTION(BlueprintCallable, Category = "PawnController|Menu")
+	void ShowGameHUD();
+	UFUNCTION(BlueprintCallable, Category = "PawnController|Menu")
+	void ShowMainMenu(bool bIsRestart);
+	UFUNCTION(BlueprintCallable, Category = "PawnController|Menu")
+	void StartGame();
+
+
+
 private:
 
 	UPROPERTY() APawn* CharacterPawn;

@@ -6,6 +6,9 @@
 #include "SpawnVolume.h"
 #include "CoinItem.h"
 #include "SpartaGameInstance.h"
+#include "PawnController.h"
+#include "Components/TextBlock.h"
+#include "Blueprint/UserWidget.h"
 
 ASpartaGameState::ASpartaGameState()
 {
@@ -20,6 +23,14 @@ void ASpartaGameState::BeginPlay()
 {
 	Super::BeginPlay();
 	StartLevel();
+
+	GetWorldTimerManager().SetTimer(
+		HUDUpdateTimerHandle,
+		this,
+		&ASpartaGameState::UpdateHUD,
+		0.1f,
+		true
+	);
 }
 
 int32 ASpartaGameState::GetScore() const
@@ -45,6 +56,13 @@ void ASpartaGameState::AddScore(int32 Amount)
 
 void ASpartaGameState::StartLevel()
 {
+	if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+	{
+		if (APawnController* PawnController = Cast<APawnController>(PlayerController))
+		{
+			PawnController->ShowGameHUD();
+		}
+	}
 
 	if (UGameInstance* GameInstance = GetGameInstance())
 	{
@@ -88,11 +106,6 @@ void ASpartaGameState::StartLevel()
 		LevelDuration,
 		false
 	);
-
-	UE_LOG(LogTemp, Warning, TEXT("Level %d started. Coins spawned: %d"),
-		CurrentLevelIndex + 1,
-		SpawnedCoinCount
-	);
 }
 
 void ASpartaGameState::OnLevelTimeUp()
@@ -130,30 +143,73 @@ void ASpartaGameState::EndLevel()
 				AddScore(Score);
 				CurrentLevelIndex++;
 				SpartaGameInstance->CurrentLevelIndex = CurrentLevelIndex;
+
+				if (CurrentLevelIndex >= MaxLevels)
+				{
+					OnGameOver();
+					return;
+				}
+
+				if (LevelMapNames.IsValidIndex(CurrentLevelIndex))
+				{
+					UGameplayStatics::OpenLevel(
+						GetWorld(),
+						LevelMapNames[CurrentLevelIndex]
+					);
+				}
+				else
+				{
+					OnGameOver();
+				}
 			}
 		}
 	}
 
-	if (CurrentLevelIndex >= MaxLevels)
-	{
-		OnGameOver();
-		return;
-	}
-
-	if (LevelMapNames.IsValidIndex(CurrentLevelIndex))
-	{
-		UGameplayStatics::OpenLevel(
-			GetWorld(),
-			LevelMapNames[CurrentLevelIndex]
-		);
-	}
-	else
-	{
-		OnGameOver();
-	}
+	
 }
 
 void ASpartaGameState::OnGameOver()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Game Over!"));
+	if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+	{
+		if (APawnController* PawnController = Cast<APawnController>(PlayerController))
+		{
+			PawnController->ShowMainMenu(true);
+		}
+	}
+}
+
+void ASpartaGameState::UpdateHUD()
+{
+	if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+	{
+		if (APawnController* PawnController = Cast<APawnController>(PlayerController))
+		{
+			if (UUserWidget* HUDWidget = PawnController->GetHUDWidget())
+			{
+				if (UTextBlock* TimeText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("TimeValue"))))
+				{
+					float RemainingTime = GetWorldTimerManager().GetTimerRemaining(LevelTimerHandle);
+					TimeText->SetText(FText::FromString(FString::Printf(TEXT("Time: %.1f"), RemainingTime)));
+				}
+
+				if (UTextBlock* ScoreText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("ScoreValue"))))
+				{
+					if (UGameInstance* GameInstance = GetGameInstance())
+					{
+						USpartaGameInstance* SpartaGameInstance = Cast<USpartaGameInstance>(GameInstance);
+						if (SpartaGameInstance)
+						{
+							ScoreText->SetText(FText::FromString(FString::Printf(TEXT("Score: %d"), SpartaGameInstance->TotalScore)));
+						}
+					}
+				}
+
+				if (UTextBlock* LevelIndexText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("Level"))))
+				{
+					LevelIndexText->SetText(FText::FromString(FString::Printf(TEXT("Level: %d"), CurrentLevelIndex + 1)));
+				}
+			}
+		}
+	}
 }
