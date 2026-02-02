@@ -78,6 +78,16 @@ public:
 	void ShowMainMenu(bool bIsRestart);
 	UFUNCTION(BlueprintCallable, Category = "PawnController|Menu")
 	void StartGame();
+	UFUNCTION(BlueprintCallable, Category = "PawnController|Menu")
+	void QuitGame();
+	UFUNCTION(BlueprintCallable, Category = "PawnController|Menu")
+	void PoisonHUD(int32 RemainingTime, bool bIsVisible);
+	UFUNCTION(BlueprintCallable, Category = "PawnController|Menu")
+	void SlowHUD(int32 RemainingTime, bool bIsVisible);
+
+	UFUNCTION()
+	void OnQuitButtonClicked();
+
 
 
 
@@ -85,4 +95,6 @@ private:
 
 	UPROPERTY() APawn* CharacterPawn;
 	UPROPERTY() APawn* DronePawn;
+
+	bool bIsGameOverMenu = false;
 };

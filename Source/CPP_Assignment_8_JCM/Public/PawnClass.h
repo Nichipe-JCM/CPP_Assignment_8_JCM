@@ -42,6 +42,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PawnClass|UI")
 	UWidgetComponent* OverHeadWidget;
 
+	UFUNCTION(BlueprintCallable, Category = "PawnClass|Movement")
+	void SetSpeedMultiplier(float Multiplier);
+
+	virtual float TakeDamage(
+		float DamageAmount,
+		struct FDamageEvent
+		const& DamageEvent,
+		AController* EventInstigator,
+		AActor* DamageCauser) override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -54,6 +64,8 @@ protected:
 	float GravityStrength = 980.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PawnClass|Movement")
 	float JumpStrength = 420.0f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PawnClass|Movement")
+	float SpeedMultiplier = 1.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PawnClass|Debug")
 	float VerticalVelocity = 0.0f;
@@ -75,12 +87,13 @@ protected:
 	virtual void OnDeath();
 	void UpdateOverHeadHP();
 
-	virtual float TakeDamage(
-		float DamageAmount,
-		struct FDamageEvent
-		const& DamageEvent,
-		AController* EventInstigator,
-		AActor* DamageCauser) override;
+
+
+	FTimerHandle PoisonTimerHandle;
+	int32 RemainingPoisonTicks;
+	float CurrentPoisonDamage;
+	FTimerHandle SlowTimerHandle;
+	int32 RemainingSlowTicks;
 
 public:	
 	// Called every frame
@@ -92,5 +105,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PawnClass|Getter")
 	bool GetIsGrounded() const { return isGrounded; }
 
+	void ApplyPoison(float Duration, float Damage);
+	void PoisonTick();
+
+	void ApplySlow(float Duration, float SlowAmount);
+	void SlowTick();
 
 };

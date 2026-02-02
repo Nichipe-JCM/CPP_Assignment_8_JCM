@@ -3,6 +3,8 @@
 
 #include "BaseItem.h"
 #include "Components/SphereComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ABaseItem::ABaseItem()
@@ -52,7 +54,54 @@ void ABaseItem::OnItemEndOverlap(
 
 void ABaseItem::ActivateItem(AActor* Activator)
 {
-	
+	UParticleSystemComponent* Particle = nullptr;
+
+	if (PickupParticle)
+	{
+		Particle = UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(),
+			PickupParticle,
+			GetActorLocation(),
+			GetActorRotation(),
+			true);
+		UE_LOG(LogTemp, Warning, TEXT("Spawned pickup particle effect."));
+	}
+	else 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No pickup particle effect assigned."));
+	}
+
+	if (PickupSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(),
+			PickupSound,
+			GetActorLocation());
+		UE_LOG(LogTemp, Warning, TEXT("Played pickup sound effect."));
+	}
+	else 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No pickup sound effect assigned."));
+	}
+
+	if (Particle)
+	{
+		FTimerHandle DestroyParticleTimerHandle;
+		TWeakObjectPtr<UParticleSystemComponent> WeakParticle = Particle;
+
+		GetWorld()->GetTimerManager().SetTimer(
+			DestroyParticleTimerHandle,
+			[WeakParticle]()
+			{
+				if (WeakParticle.IsValid())
+				{
+					WeakParticle->DestroyComponent();
+				}
+			},
+			2.0f,
+			false
+		);
+	}
 }
 
 FName ABaseItem::GetItemType() const

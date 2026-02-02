@@ -10,6 +10,11 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "PawnController.h"
+#include "Components/WidgetComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "Components/TextBlock.h"
+#include "Kismet/GameplayStatics.h"
+#include "SpartaGameState.h"
 
 #pragma region Construction
 #pragma region Construction
@@ -23,24 +28,32 @@ ADrone::ADrone()
 	SetRootComponent(CapsuleComponent);
 	CapsuleComponent->SetSimulatePhysics(false);
 	CapsuleComponent->SetEnableGravity(false);
+	CapsuleComponent->SetCollisionProfileName(TEXT("Pawn"));
+	CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
 	DroneMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("DroneMesh"));
 	DroneMesh->SetupAttachment(RootComponent);
 	DroneMesh->SetSimulatePhysics(false);
+	DroneMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	ArrowComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("ArrowComponent"));
 	ArrowComponent->SetupAttachment(RootComponent);
 	ArrowComponent->SetHiddenInGame(false);
+	ArrowComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
-	SpringArm->TargetArmLength = 400.0f;
+	SpringArm->TargetArmLength = 500.0f;
 	SpringArm->SetRelativeRotation(FRotator(-20.0f, 0.0f, 0.0f));
 	SpringArm->bUsePawnControlRotation = false;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+
+	OverHeadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverHeadWidget"));
+	OverHeadWidget->SetupAttachment(DroneMesh);
+	OverHeadWidget->SetWidgetSpace(EWidgetSpace::Screen);
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> DroneMeshAsset(TEXT("/Game/Fab/Free_Sci-Fi_Drone___Full_Pack_In_Description/SM_Drone.SM_Drone"));
 	if (DroneMeshAsset.Succeeded())
@@ -52,6 +65,9 @@ ADrone::ADrone()
 	{
 		LoopAnimation = LoopAnimationAsset.Object;
 	}
+
+	MaxHealth = 100.0f;
+	Health = MaxHealth;
 }
 
 // Called when the game starts or when spawned
@@ -63,7 +79,156 @@ void ADrone::BeginPlay()
 	{
 		DroneMesh->PlayAnimation(LoopAnimation, true);
 	}	
+
+	UpdateOverHeadHP();
 	
+}
+
+void ADrone::AddHealth(float Amount)
+{
+	Health = FMath::Clamp(Health + Amount, 0.0f, MaxHealth);
+	UE_LOG(LogTemp, Warning, TEXT("Health increased to: %f"), Health);
+	UpdateOverHeadHP();
+}
+
+void ADrone::SetSpeedMultiplier(float Multiplier)
+{
+	SpeedMultiplier = Multiplier;
+}
+
+float ADrone::TakeDamage(
+	float DamageAmount,
+	struct FDamageEvent const& DamageEvent,
+	AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	Health = FMath::Clamp(Health - DamageAmount, 0.0f, MaxHealth);
+	UE_LOG(LogTemp, Warning, TEXT("Health decreased to: %f"), Health);
+
+	if (Health <= 0.0f)
+	{
+		OnDeath();
+	}
+	UpdateOverHeadHP();
+
+	return ActualDamage;
+}
+
+void ADrone::OnDeath()
+{
+	ASpartaGameState* SpartaGameState = GetWorld() ? GetWorld()->GetGameState<ASpartaGameState>() : nullptr;
+	if (SpartaGameState)
+	{
+		SpartaGameState->OnGameOver();
+	}
+}
+
+int32 ADrone::GetHealth() const
+{
+	return Health;
+}
+
+void ADrone::UpdateOverHeadHP()
+{
+	if (!OverHeadWidget) return;
+
+	UUserWidget* OverHeadWidgetInstance = OverHeadWidget->GetUserWidgetObject();
+	if (!OverHeadWidgetInstance) return;
+
+	if (UTextBlock* HPText = Cast<UTextBlock>(OverHeadWidgetInstance->GetWidgetFromName(TEXT("OverHeadHP"))))
+	{
+		HPText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Health, MaxHealth)));
+	}
+}
+
+void ADrone::ApplyPoison(float Duration, float Damage)
+{
+	GetWorldTimerManager().ClearTimer(PoisonTimerHandle);
+
+	RemainingPoisonTicks = FMath::RoundToInt(Duration);
+	CurrentPoisonDamage = Damage;
+
+	if (APawnController* PC = Cast<APawnController>(GetController()))
+	{
+		PC->PoisonHUD(RemainingPoisonTicks, true);
+	}
+
+	GetWorldTimerManager().SetTimer(
+		PoisonTimerHandle,
+		this,
+		&ADrone::PoisonTick,
+		1.0f,
+		true);
+}
+
+void ADrone::PoisonTick()
+{
+	if (RemainingPoisonTicks > 0)
+	{
+		UGameplayStatics::ApplyDamage(
+			this,
+			CurrentPoisonDamage,
+			nullptr,
+			nullptr,
+			UDamageType::StaticClass());
+		RemainingPoisonTicks--;
+
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			PC->PoisonHUD(RemainingPoisonTicks, true);
+		}
+	}
+
+	if (RemainingPoisonTicks <= 0)
+	{
+		GetWorldTimerManager().ClearTimer(PoisonTimerHandle);
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			PC->PoisonHUD(0, false);
+		}
+	}
+}
+
+void ADrone::ApplySlow(float Duration, float SlowMultiplier)
+{
+	GetWorldTimerManager().ClearTimer(SlowTimerHandle);
+
+	RemainingSlowTicks = FMath::RoundToInt(Duration);
+	SetSpeedMultiplier(SlowMultiplier);
+
+	if (APawnController* PC = Cast<APawnController>(GetController()))
+	{
+		PC->SlowHUD(RemainingSlowTicks, true);
+	}
+	GetWorldTimerManager().SetTimer(
+		SlowTimerHandle,
+		this,
+		&ADrone::SlowTick,
+		1.0f,
+		true);
+}
+
+void ADrone::SlowTick()
+{
+	if (RemainingSlowTicks > 0)
+	{
+		RemainingSlowTicks--;
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			PC->SlowHUD(RemainingSlowTicks, true);
+		}
+	}
+	if (RemainingSlowTicks <= 0)
+	{
+		GetWorldTimerManager().ClearTimer(SlowTimerHandle);
+		SetSpeedMultiplier(1.0f);
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			PC->SlowHUD(0, false);
+		}
+	}
 }
 
 // Called every frame
@@ -138,11 +303,17 @@ void ADrone::Move(const FInputActionValue& Value)
 	float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	FVector DeltaLocation(
-		InputVector.X * MoveSpeed * DeltaTime,
-		InputVector.Y * MoveSpeed * DeltaTime,
+		InputVector.X * MoveSpeed * DeltaTime * SpeedMultiplier,
+		InputVector.Y * MoveSpeed * DeltaTime * SpeedMultiplier,
 		0.0f);
 	
-	AddActorLocalOffset(DeltaLocation, true);
+	FHitResult Hit;
+	AddActorLocalOffset(DeltaLocation, true, &Hit);
+	if (Hit.bBlockingHit)
+	{
+		FVector SlideVector = FVector::VectorPlaneProject(DeltaLocation * (1.f - Hit.Time), Hit.Normal);
+		AddActorLocalOffset(SlideVector, true);
+	}
 }
 
 void ADrone::Look(const FInputActionValue& Value)
@@ -169,9 +340,15 @@ void ADrone::Ascend(const FInputActionValue& Value)
 	FVector DeltaLocation(
 		0.0f,
 		0.0f,
-		InputFloat * MoveSpeed * DeltaTime);
+		InputFloat * MoveSpeed * DeltaTime * SpeedMultiplier);
 	
-	AddActorLocalOffset(DeltaLocation, true);
+	FHitResult Hit;
+	AddActorLocalOffset(DeltaLocation, true, &Hit);
+	if (Hit.bBlockingHit)
+	{
+		FVector SlideVector = FVector::VectorPlaneProject(DeltaLocation * (1.f - Hit.Time), Hit.Normal);
+		AddActorLocalOffset(SlideVector, true);
+	}
 }
 
 void ADrone::Roll(const FInputActionValue& Value)

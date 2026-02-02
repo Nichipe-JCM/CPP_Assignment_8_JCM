@@ -157,11 +157,11 @@ void APawnClass::Move(const FInputActionValue& Value)
 	float ScaledMoveSpeed;
 	if(isGrounded)
 	{
-		ScaledMoveSpeed = MoveSpeed * DeltaTime;
+		ScaledMoveSpeed = MoveSpeed * DeltaTime * SpeedMultiplier;
 	}
 	else
 	{
-		ScaledMoveSpeed = MoveSpeed * 1.2f * DeltaTime;
+		ScaledMoveSpeed = MoveSpeed * 1.2f * DeltaTime * SpeedMultiplier;
 	}
 
 	FVector DeltaLocation(InputVector.X * ScaledMoveSpeed, InputVector.Y * ScaledMoveSpeed, 0.0f);
@@ -200,12 +200,17 @@ void APawnClass::AddHealth(float Amount)
 {
 	Health = FMath::Clamp(Health + Amount, 0.0f, MaxHealth);
 	UE_LOG(LogTemp, Warning, TEXT("Health increased to: %f"), Health);
+	UpdateOverHeadHP();
+}
+
+void APawnClass::SetSpeedMultiplier(float Multiplier)
+{
+	SpeedMultiplier = Multiplier;
 }
 
 float APawnClass::TakeDamage(
 		float DamageAmount,
-		struct FDamageEvent
-		const& DamageEvent,
+		struct FDamageEvent const& DamageEvent,
 		AController* EventInstigator,
 		AActor* DamageCauser)
 {
@@ -247,5 +252,93 @@ void APawnClass::UpdateOverHeadHP()
 	if (UTextBlock* HPText = Cast<UTextBlock>(OverHeadWidgetInstance->GetWidgetFromName(TEXT("OverHeadHP"))))
 	{
 		HPText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Health, MaxHealth)));
+	}
+}
+
+void APawnClass::ApplyPoison(float Duration, float Damage)
+{
+	GetWorldTimerManager().ClearTimer(PoisonTimerHandle);
+
+	RemainingPoisonTicks = FMath::RoundToInt(Duration);
+	CurrentPoisonDamage = Damage;
+
+	if (APawnController* PC = Cast<APawnController>(GetController()))
+	{
+		PC->PoisonHUD(RemainingPoisonTicks, true);
+	}
+
+	GetWorldTimerManager().SetTimer(
+		PoisonTimerHandle,
+		this,
+		&APawnClass::PoisonTick,
+		1.0f,
+		true);
+}
+
+void APawnClass::PoisonTick()
+{
+	if (RemainingPoisonTicks > 0)
+	{
+		UGameplayStatics::ApplyDamage(
+			this,
+			CurrentPoisonDamage,
+			nullptr,
+			nullptr,
+			UDamageType::StaticClass());
+		RemainingPoisonTicks--;
+
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			PC->PoisonHUD(RemainingPoisonTicks, true);
+		}
+	}
+
+	if (RemainingPoisonTicks <= 0)
+	{
+		GetWorldTimerManager().ClearTimer(PoisonTimerHandle);
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			PC->PoisonHUD(0, false);
+		}
+	}
+}
+
+void APawnClass::ApplySlow(float Duration, float SlowMultiplier)
+{
+	GetWorldTimerManager().ClearTimer(SlowTimerHandle);
+
+	RemainingSlowTicks = FMath::RoundToInt(Duration);
+	SetSpeedMultiplier(SlowMultiplier);
+
+	if (APawnController* PC = Cast<APawnController>(GetController()))
+	{
+		PC->SlowHUD(RemainingSlowTicks, true);
+	}
+	GetWorldTimerManager().SetTimer(
+		SlowTimerHandle,
+		this,
+		&APawnClass::SlowTick,
+		1.0f,
+		true);
+}
+
+void APawnClass::SlowTick()
+{
+	if (RemainingSlowTicks > 0)
+	{
+		RemainingSlowTicks--;
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			PC->SlowHUD(RemainingSlowTicks, true);
+		}
+	}
+	if (RemainingSlowTicks <= 0)
+	{
+		GetWorldTimerManager().ClearTimer(SlowTimerHandle);
+		SetSpeedMultiplier(1.0f);
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			PC->SlowHUD(0, false);
+		}
 	}
 }

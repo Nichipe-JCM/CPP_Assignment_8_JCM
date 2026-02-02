@@ -9,6 +9,7 @@
 #include "SpartaGameState.h"
 #include "Components/TextBlock.h"
 #include "SpartaGameInstance.h"
+#include "Components/Button.h"
 
 APawnController::APawnController() :
 	PawnInputMappingContext(nullptr),
@@ -38,17 +39,9 @@ void APawnController::BeginPlay()
 	Super::BeginPlay();
 
 	CharacterPawn = GetPawn();
+	FString CurrentMapName = GetWorld()->GetMapName();
 
-	if (DronePawnClass)
-	{
-		AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), DronePawnClass);
-		DronePawn = Cast<APawn>(FoundActor);
-
-		if (!DronePawn)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("DronePawnClass found, but no drone pawn instance found."));
-		}
-	}
+	
 
 	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{		
@@ -65,8 +58,20 @@ void APawnController::BeginPlay()
 			}
 		}
 	}
-
-	FString CurrentMapName = GetWorld()->GetMapName();
+	if (CurrentMapName.Contains("Advanced"))
+	{
+		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				if (DroneInputMappingContext)
+				{
+					Subsystem->RemoveMappingContext(PawnInputMappingContext);
+					Subsystem->AddMappingContext(DroneInputMappingContext, 1);
+				}
+			}
+		}
+	}
 	if (CurrentMapName.Contains("MenuLevel"))
 	{
 		ShowMainMenu(false);
@@ -80,6 +85,7 @@ UUserWidget* APawnController::GetHUDWidget() const
 
 void APawnController::ShowMainMenu(bool bIsRestart)
 {
+	bIsGameOverMenu = bIsRestart;
 	if (HUDWidgetInstance)
 	{
 		HUDWidgetInstance->RemoveFromParent();
@@ -111,6 +117,25 @@ void APawnController::ShowMainMenu(bool bIsRestart)
 			{
 				ButtonText->SetText(FText::FromString(TEXT("Start")));	
 			}
+		}
+
+		if (UTextBlock* MainScreenText1 = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName(TEXT("MainScreenText1"))))
+		{
+			MainScreenText1->SetVisibility(bIsRestart ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
+		}
+		if (UTextBlock* MainScreenText2 = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName(TEXT("MainScreenText2"))))
+		{
+			MainScreenText2->SetVisibility(bIsRestart ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
+		}
+
+		if (UTextBlock* QuitButtonText = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName(TEXT("QuitButtonText"))))
+		{
+			QuitButtonText->SetText(FText::FromString(bIsRestart ? TEXT("Main Menu") : TEXT("Quit")));
+		}
+		if (UButton* QuitButton = Cast<UButton>(MainMenuWidgetInstance->GetWidgetFromName(TEXT("QuitButton"))))
+		{
+			QuitButton->OnClicked.RemoveAll(this);
+			QuitButton->OnClicked.AddDynamic(this, &APawnController::OnQuitButtonClicked);
 		}
 
 		if (bIsRestart)
@@ -176,6 +201,23 @@ void APawnController::StartGame()
 		FName("BasicLevel")
 	);
 	SetPause(false);
+}
+
+void APawnController::QuitGame()
+{
+	UKismetSystemLibrary::QuitGame(this, this, EQuitPreference::Quit, true);
+}
+
+void APawnController::OnQuitButtonClicked()
+{
+	if (bIsGameOverMenu)
+	{
+		SetPause(false);
+		UGameplayStatics::OpenLevel(GetWorld(), FName("MenuLevel"));
+		return;
+	}
+
+	QuitGame();
 }
 
 
@@ -267,3 +309,39 @@ void APawnController::SwitchToDrone(const FInputActionValue& Value)
 		}
 	}
 }
+
+void APawnController::PoisonHUD(int32 RemainingTime, bool bIsVisible)
+{
+	if (!HUDWidgetInstance) return;
+	UTextBlock* PoisonTimer = Cast<UTextBlock>(HUDWidgetInstance->GetWidgetFromName(TEXT("PoisonTimer")));
+	if (!PoisonTimer) return;
+	if (bIsVisible)
+	{
+		PoisonTimer->SetText(FText::FromString(
+			FString::Printf(TEXT("Poison: %d"), RemainingTime)
+		));
+		PoisonTimer->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		PoisonTimer->SetVisibility(ESlateVisibility::Hidden);
+	}
+}
+
+void APawnController::SlowHUD(int32 RemainingTime, bool bIsVisible)
+{
+	if (!HUDWidgetInstance) return;
+	UTextBlock* SlowTimer = Cast<UTextBlock>(HUDWidgetInstance->GetWidgetFromName(TEXT("SlowTimer")));
+	if (!SlowTimer) return;
+	if (bIsVisible)
+	{
+		SlowTimer->SetText(FText::FromString(
+			FString::Printf(TEXT("Slow: %d"), RemainingTime)
+		));
+		SlowTimer->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		SlowTimer->SetVisibility(ESlateVisibility::Hidden);
+	}
+}	

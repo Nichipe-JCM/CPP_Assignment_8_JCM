@@ -16,6 +16,8 @@ struct FItemSpawnRow : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Wave;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName ItemName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ItemClass;

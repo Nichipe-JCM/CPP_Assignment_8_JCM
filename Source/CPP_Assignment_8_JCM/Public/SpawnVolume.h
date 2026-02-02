@@ -19,7 +19,7 @@ public:
 	ASpawnVolume();
 
 	UFUNCTION(BlueprintCallable, Category = "Spawning")
-	AActor* SpawnRandomItem();
+	AActor* SpawnRandomItem(int32 CurrentWave);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Spawning")
@@ -31,7 +31,7 @@ protected:
 	UDataTable* ItemDataTable;
 
 	FVector GetRandomPointInVolume() const;
-	FItemSpawnRow* GetRandomItem() const;
+	FItemSpawnRow* GetRandomItem(int32 CurrentWave) const;
 	AActor* SpawnItem(TSubclassOf<AActor> ItemClass);
 
 };

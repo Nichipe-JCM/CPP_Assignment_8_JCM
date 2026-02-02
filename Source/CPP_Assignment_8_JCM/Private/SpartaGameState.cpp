@@ -9,6 +9,10 @@
 #include "PawnController.h"
 #include "Components/TextBlock.h"
 #include "Blueprint/UserWidget.h"
+#include "GameFramework/PlayerStart.h"
+#include "PawnClass.h"
+#include "Drone.h"
+#include "GameFramework/SpringArmComponent.h"
 
 ASpartaGameState::ASpartaGameState()
 {
@@ -17,11 +21,17 @@ ASpartaGameState::ASpartaGameState()
 	CollectedCoinCount = 0;
 	LevelDuration = 30.0f;
 	MaxLevels = 3;
+	MaxWaves = 3;
 }
 
 void ASpartaGameState::BeginPlay()
 {
 	Super::BeginPlay();
+	FString CurrentMapName = GetWorld()->GetMapName();
+	if (CurrentMapName.Contains("MenuLevel"))
+	{
+		return;
+	}
 	StartLevel();
 
 	GetWorldTimerManager().SetTimer(
@@ -75,13 +85,22 @@ void ASpartaGameState::StartLevel()
 		}
 	}
 
+	CurrentWaveIndex = 0;
+
+	StartWave();
+}
+
+void ASpartaGameState::StartWave()
+{
+
 	SpawnedCoinCount = 0;
 	CollectedCoinCount = 0;
 
 	TArray<AActor*> FoundVolumes;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpawnVolume::StaticClass(), FoundVolumes);
 
-	const int32 ItemToSpawn = 40;
+	const int32 ItemToSpawn = 40 + CurrentLevelIndex * 10;
+	LevelDuration = 60.0f - CurrentWaveIndex * 10.0f;
 
 	for (int32 i = 0; i < ItemToSpawn; ++i)
 	{
@@ -90,7 +109,7 @@ void ASpartaGameState::StartLevel()
 			ASpawnVolume* SpawnVolume = Cast<ASpawnVolume>(FoundVolumes[0]);
 			if (SpawnVolume)
 			{
-				AActor* SpawnedActor = SpawnVolume->SpawnRandomItem();
+				AActor* SpawnedActor = SpawnVolume->SpawnRandomItem(CurrentWaveIndex + 1);
 				if (SpawnedActor && SpawnedActor->IsA(ACoinItem::StaticClass()))
 				{
 					SpawnedCoinCount++;
@@ -106,11 +125,91 @@ void ASpartaGameState::StartLevel()
 		LevelDuration,
 		false
 	);
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			5.0f,
+			FColor::Green,
+			FString::Printf(TEXT("Wave %d started! Collect all %d coins in %.1f seconds."),
+				CurrentWaveIndex + 1,
+				SpawnedCoinCount,
+				LevelDuration)
+		);
+		if (CurrentLevelIndex == 0 && CurrentWaveIndex == 1)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				5.0f,
+				FColor::Yellow,
+				TEXT("Poison potion appeared! Avoid purple potions!")
+			);
+		}
+		if (CurrentLevelIndex == 0 && CurrentWaveIndex == 2)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				5.0f,
+				FColor::Yellow,
+				TEXT("Slow potion appeared! Avoid yellow potions!")
+			);
+		}
+	}
+
+	AActor* PlayerStart = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass());
+
+	APawnController* PawnController = Cast<APawnController>(GetWorld()->GetFirstPlayerController());
+	if (PawnController && PlayerStart)
+	{
+		APawn* PlayerPawn = PawnController->GetPawn();
+		if (PlayerPawn)
+		{
+			PlayerPawn->SetActorLocation(PlayerStart->GetActorLocation());
+			PlayerPawn->SetActorRotation(PlayerStart->GetActorRotation());
+		}
+		PawnController->SetControlRotation(PlayerStart->GetActorRotation());
+		if (APawnClass* Pawn = Cast<APawnClass>(PlayerPawn))
+		{
+			if (Pawn->SpringArm)
+			{
+				Pawn->SpringArm->SetRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
+			}
+		}
+		else if (ADrone* DronePawn = Cast<ADrone>(PlayerPawn))
+		{
+			if (DronePawn->SpringArm)
+			{
+				DronePawn->SpringArm->SetRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
+			}
+		}
+	}
+}
+
+void ASpartaGameState::EndWave()
+{
+	GetWorldTimerManager().ClearTimer(LevelTimerHandle);
+	if (CollectedCoinCount < SpawnedCoinCount)
+	{
+		OnGameOver();
+	}
+	else 	
+	{
+		CurrentWaveIndex++;
+		if (CurrentWaveIndex < MaxWaves)
+		{
+			StartWave();
+		}
+		else
+		{
+			EndLevel();
+		}
+	}
 }
 
 void ASpartaGameState::OnLevelTimeUp()
 {
-	EndLevel();
+	EndWave();
 }
 
 void ASpartaGameState::OnCoinCollected()
@@ -124,7 +223,7 @@ void ASpartaGameState::OnCoinCollected()
 
 	if (SpawnedCoinCount > 0 && CollectedCoinCount >= SpawnedCoinCount)
 	{
-		EndLevel();
+		EndWave();
 	}
 }
 
@@ -209,6 +308,11 @@ void ASpartaGameState::UpdateHUD()
 				if (UTextBlock* LevelIndexText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("Level"))))
 				{
 					LevelIndexText->SetText(FText::FromString(FString::Printf(TEXT("Level: %d"), CurrentLevelIndex + 1)));
+				}
+
+				if (UTextBlock* WaveIndexText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("Wave"))))
+				{
+					WaveIndexText->SetText(FText::FromString(FString::Printf(TEXT("Wave: %d/%d"), CurrentWaveIndex + 1, MaxWaves)));
 				}
 			}
 		}

@@ -3,6 +3,7 @@
 
 #include "HealingItem.h"
 #include "PawnClass.h"
+#include "Drone.h"
 
 AHealingItem::AHealingItem()
 {
@@ -12,19 +13,17 @@ AHealingItem::AHealingItem()
 
 void AHealingItem::ActivateItem(AActor* Activator)
 {
+	Super::ActivateItem(Activator);
 	if(Activator && Activator->ActorHasTag("Player"))
 	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				2.f,
-				FColor::Green,
-				FString::Printf(TEXT("Healed %d health!"), HealAmount)
-			);
-
+		
 		if (APawnClass* PlayerCharacter = Cast<APawnClass>(Activator))
 		{
 			PlayerCharacter->AddHealth(HealAmount);
+		}
+		else if (ADrone* Drone = Cast<ADrone>(Activator))
+		{
+			Drone->AddHealth(HealAmount);
 		}
 
 		DestroyItem();
