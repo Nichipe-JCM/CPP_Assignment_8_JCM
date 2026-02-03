@@ -127,6 +127,11 @@ void APawnController::ShowMainMenu(bool bIsRestart)
 		{
 			MainScreenText2->SetVisibility(bIsRestart ? ESlateVisibility::Hidden : ESlateVisibility::Visible);
 		}
+		UFunction* PlayMainAnimFunc = MainMenuWidgetInstance->FindFunction(TEXT("PlayMainAnim"));
+		if (PlayMainAnimFunc)
+		{
+			MainMenuWidgetInstance->ProcessEvent(PlayMainAnimFunc, nullptr);
+		}
 
 		if (UTextBlock* QuitButtonText = Cast<UTextBlock>(MainMenuWidgetInstance->GetWidgetFromName(TEXT("QuitButtonText"))))
 		{

@@ -18,6 +18,10 @@ public:
 	// Sets default values for this actor's properties
 	ABaseItem();
 
+	void Tick(float DeltaTime) override;
+
+	bool bShouldRotate = true;
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")

@@ -314,6 +314,11 @@ void ASpartaGameState::UpdateHUD()
 				{
 					WaveIndexText->SetText(FText::FromString(FString::Printf(TEXT("Wave: %d/%d"), CurrentWaveIndex + 1, MaxWaves)));
 				}
+
+				if (UTextBlock* CoinText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("CoinValue"))))
+				{
+					CoinText->SetText(FText::FromString(FString::Printf(TEXT("Coins: %d/%d"), CollectedCoinCount, SpawnedCoinCount)));
+				}
 			}
 		}
 	}

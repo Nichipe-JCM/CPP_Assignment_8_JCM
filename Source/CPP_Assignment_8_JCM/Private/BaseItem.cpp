@@ -10,7 +10,7 @@
 ABaseItem::ABaseItem()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	Scene = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
 	SetRootComponent(Scene);
@@ -27,7 +27,14 @@ ABaseItem::ABaseItem()
 	Collision->OnComponentEndOverlap.AddDynamic(this, &ABaseItem::OnItemEndOverlap);
 }
 
-
+void ABaseItem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	if (bShouldRotate)
+	{
+		AddActorWorldRotation(FRotator(0.f, 180.f * DeltaTime, 0.f));
+	}
+}
 
 
 void ABaseItem::OnItemOverlap(
@@ -66,7 +73,7 @@ void ABaseItem::ActivateItem(AActor* Activator)
 			true);
 		UE_LOG(LogTemp, Warning, TEXT("Spawned pickup particle effect."));
 	}
-	else 
+	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No pickup particle effect assigned."));
 	}
@@ -79,7 +86,7 @@ void ABaseItem::ActivateItem(AActor* Activator)
 			GetActorLocation());
 		UE_LOG(LogTemp, Warning, TEXT("Played pickup sound effect."));
 	}
-	else 
+	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No pickup sound effect assigned."));
 	}
